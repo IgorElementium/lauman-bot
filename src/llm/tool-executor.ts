@@ -167,6 +167,52 @@ export async function executeScheduleActivity(
   }
 }
 
+export async function executeGetPipelineSummary(stages?: string[]): Promise<string> {
+  try {
+    // Get all open leads
+    const domain = [['stage_id', '!=', 'false']] as unknown[][];
+    const leads = (await searchRead(
+      'crm.lead',
+      domain,
+      ['id', 'name', 'city', 'phone', 'stage_id', 'create_date'],
+      { order: 'create_date ASC' }
+    )) as any[];
+
+    // Group by stage
+    const byStage: Record<string, any[]> = {};
+    for (const lead of leads) {
+      const stageName = lead.stage_id ? lead.stage_id[1] : 'Onbekend';
+
+      // Filter by requested stages if provided
+      if (stages && !stages.map((s) => s.toLowerCase()).includes(stageName.toLowerCase())) {
+        continue;
+      }
+
+      if (!byStage[stageName]) {
+        byStage[stageName] = [];
+      }
+      byStage[stageName].push(lead);
+    }
+
+    // Format output
+    let output = `**Pipeline overzicht** (${leads.length} open leads)\n\n`;
+    for (const [stage, stageLeads] of Object.entries(byStage)) {
+      output += `**${stage}** (${stageLeads.length}):\n`;
+      for (const lead of stageLeads) {
+        const created = lead.create_date ? new Date(lead.create_date).toLocaleDateString('nl-BE') : 'N/A';
+        output += `  - ${lead.name} (${lead.city || 'N/A'}) - ${lead.phone || 'N/A'} [ID: ${lead.id}, sinds ${created}]\n`;
+      }
+      output += '\n';
+    }
+
+    return output || 'Geen open leads gevonden';
+  } catch (error) {
+    throw new Error(
+      `Fout bij laden pipeline: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
+
 export async function executeTool(
   toolName: string,
   toolInput: ToolInput
@@ -197,6 +243,9 @@ export async function executeTool(
           toolInput.date_deadline as string,
           toolInput.summary as string
         );
+
+      case 'get_pipeline_summary':
+        return await executeGetPipelineSummary(toolInput.stages as string[] | undefined);
 
       default:
         throw new Error(`Onbekende tool: ${toolName}`);

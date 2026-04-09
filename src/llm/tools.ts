@@ -104,6 +104,23 @@ export const TOOLS: ToolDefinition[] = [
       required: ['lead_id', 'activity_type', 'date_deadline', 'summary'],
     },
   },
+  {
+    name: 'get_pipeline_summary',
+    description:
+      'Haal een overzicht van alle open leads op, gegroepeerd per stadium. Gebruik dit als Jorn wil weten welke leads nog open staan, welke moet terugbellen, etc.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        stages: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Optioneel: filter op specifieke stages (bijv. ["Nieuw", "Bezoek plannen"]). Als leeg, alle stages.',
+        },
+      },
+      required: [],
+    },
+  },
 ];
 
 export function getToolByName(name: string): ToolDefinition | undefined {
