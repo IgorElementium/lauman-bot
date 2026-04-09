@@ -12,8 +12,6 @@ services:
       - .:/app
       - /app/node_modules
       - /app/dist
-    ports:
-      - "3000:3000"
     restart: unless-stopped
     networks:
       - lauman-bot

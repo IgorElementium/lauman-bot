@@ -15,5 +15,8 @@ COPY tsconfig.json .
 # Build TypeScript
 RUN npm run build
 
+# Copy schema.sql to dist
+COPY src/db/schema.sql dist/db/
+
 # Run the bot
 CMD ["npm", "start"]
