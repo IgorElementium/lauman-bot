@@ -73,11 +73,11 @@ export const config: Config = {
   odoo: {
     url: parseEnv<string>('ODOO_URL', 'https://laumanrenovatie1.odoo.com'),
     db: parseEnv<string>('ODOO_DB', 'laumanrenovatie1'),
-    username: parseEnv<string>('ODOO_USERNAME'),
-    apiKey: parseEnv<string>('ODOO_API_KEY'),
+    username: process.env.ODOO_USERNAME || '',
+    apiKey: process.env.ODOO_API_KEY || '',
   },
   claude: {
-    apiKey: parseEnv<string>('ANTHROPIC_API_KEY'),
+    apiKey: process.env.ANTHROPIC_API_KEY || '',
     model: parseEnv<string>('LLM_MODEL', 'claude-haiku-4-5-20251001'),
     modelUpgrade: parseEnv<string>(
       'LLM_MODEL_UPGRADE',
