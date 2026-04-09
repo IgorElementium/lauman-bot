@@ -1,69 +1,111 @@
 # lauman-bot
 
-Conversational Telegram assistant for Jorn Lauman that bridges Telegram ↔ Odoo CRM
-via Claude tool-use.
+Conversational Telegram assistant for Jorn Lauman that bridges Telegram ↔ Odoo CRM via Claude tool-use. Jorn manages leads from his phone in natural Dutch without opening Odoo.
 
-See [SPEC.md](SPEC.md) for the complete specification.
-See [STRUCTURE.md](STRUCTURE.md) for repository layout and design decisions.
+## Features (Phases 1-4 complete)
 
-## Phase 1: Skeleton + Echo Bot
+✅ **Odoo polling** — checks for new leads every 30 seconds
+✅ **Telegram notifications** — formatted lead alerts with details
+✅ **Conversational Claude** — Jorn talks naturally in Dutch, Claude understands
+✅ **CRM tools** — search leads, get details, create notes, update stages, schedule activities, view pipeline
+✅ **Follow-up automation** — nudges Jorn about stale leads (4h → 24h → 24h → cold)
+✅ **Call tracking** — logs when Jorn called, shows history in nudges ("Je hebt al 2x gebeld, sinds 8h geleden")
+✅ **Quiet hours** — respects 20:00-08:00 (no nudges, deferred to 08:00)
+✅ **SQLite persistence** — conversation history, lead state, call logs all persisted
 
-The bot starts and echoes messages back. Proof of life.
+## Quick Start
 
-### Setup
+### Local Development
 
-1. **Get a Telegram bot token** from @BotFather on Telegram.
-
-2. **Copy `.env.example` to `.env`** and fill in:
-   ```bash
-   cp .env.example .env
-   ```
-
-   Minimum for phase 1:
-   - `TELEGRAM_BOT_TOKEN=` → paste your token from @BotFather
-   - `ALLOWED_CHAT_IDS=` → your Telegram chat ID (get it from @userinfobot)
-
-3. **Install dependencies**:
-   ```bash
-   npm install
-   ```
-
-### Running locally
-
-**Option A: Direct Node.js**
 ```bash
+npm install
+cp .env.example .env
+# Fill in: TELEGRAM_BOT_TOKEN, ALLOWED_CHAT_IDS, Odoo credentials, Claude API key
 npm run dev
 ```
 
-**Option B: Docker Compose**
+### Docker
+
 ```bash
 docker compose up
 ```
 
-The bot will start with long polling. Send a message to your bot on Telegram
-and it will echo it back.
+Bot will start:
+- Telegram bot listening (long polling)
+- Odoo poller every 30s
+- Nudge heartbeat every 30min
 
-### Testing the bot
+Send a message to your bot on Telegram and Claude will respond.
 
-1. Find your Telegram chat ID: send any message to @userinfobot on Telegram
-2. Update `.env`: `ALLOWED_CHAT_IDS=123456789` (your ID)
-3. Start the bot
-4. Open Telegram and send a message to your bot
-5. The bot should echo the message back
+## Deployment to Hetzner
 
-### Commands
+See [DEPLOYMENT.md](DEPLOYMENT.md) for full instructions.
+
+TL;DR:
+```bash
+ssh root@<hetzner-ip>
+cd /home/lauman
+git clone <repo> bot && cd bot
+cp .env.example .env
+# Edit .env with production values
+docker compose up -d
+```
+
+## Usage
+
+**Jorn says**: "Hallo, welke leads moet ik nog terugbellen?"
+**Bot responds**: Shows pipeline overview with all open leads by stage
+
+**Jorn says**: "Gebeld met die van Mortsel, niet opgehaald"
+**Bot responds**: Logs the call, asks if he wants to schedule a reminder or send email
+
+**After 4 hours** of no activity: Bot nudges "Je hebt al 1x gebeld met Peters van Antwerpen, sinds 4h geleden. Nummer: +32..."
+
+## Architecture
+
+- **Telegram**: grammY library, long polling
+- **Odoo**: XML-RPC, polling every 30s
+- **LLM**: Claude Haiku 4.5 with tool-use, Sonnet 4.6 for complex tasks
+- **Persistence**: SQLite (conversation history, lead state, call tracking)
+- **Voice** (Phase 5): faster-whisper for Dutch transcription
+- **Email** (Phase 6): Odoo mail.message integration
+
+## Documentation
+
+- [SPEC.md](SPEC.md) — complete system specification & requirements
+- [STRUCTURE.md](STRUCTURE.md) — code organization & design decisions
+- [DEPLOYMENT.md](DEPLOYMENT.md) — how to deploy to Hetzner
+- [.env.example](.env.example) — environment variable reference
+
+## Roadmap
+
+| Phase | Feature | Status |
+|-------|---------|--------|
+| 1 | Skeleton + echo | ✅ |
+| 2 | Odoo poller + notifications | ✅ |
+| 3 | Claude + tools | ✅ |
+| 4 | Follow-up state machine + nudges | ✅ |
+| 5 | Voice notes (faster-whisper) | ⏳ |
+| 6 | Email drafting (Odoo integration) | ⏳ |
+| 7 | Polish & hardening | ⏳ |
+
+## Commands
 
 - `/start` — bot introduction
 - `/ping` — health check
 
-### Logs
+## Logs
 
-Logs are JSON-formatted to stdout. In production on Hetzner, Docker captures them.
-
-```json
-{"timestamp":"2026-04-09T10:30:45.123Z","level":"info","message":"Incoming message","data":{"chatId":123456789,"userId":987654321,"messageType":"text"}}
+JSON-formatted to stdout. Watch with:
+```bash
+docker compose logs -f bot | grep -E "error|Claude|Fetched leads"
 ```
 
-## Next phases
+## Support
 
-See SPEC.md §14 for the full 7-phase plan.
+For issues or questions, check logs first:
+```bash
+docker compose logs bot
+```
+
+Common issues: wrong Telegram token, Odoo credentials, API key.
