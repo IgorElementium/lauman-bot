@@ -1,6 +1,7 @@
 import { Bot, Context } from 'grammy';
 import { logger } from '../utils/logger.js';
 import { config } from '../utils/config.js';
+import { handleMessage } from '../llm/chat.js';
 
 export type BotContext = Context;
 
@@ -38,15 +39,31 @@ bot.use((ctx, next) => {
   return next();
 });
 
-// Phase 1: Echo handler
+// Phase 3: Claude handler
 bot.on('message:text', async (ctx) => {
   const text = ctx.message.text;
-  logger.info('Echo message', { text });
+  const chatId = ctx.chat.id;
+  logger.info('Processing message with Claude', { chatId, textLength: text.length });
 
   try {
-    await ctx.reply(`Echo: ${text}`);
+    // Handle message with LLM
+    const response = await handleMessage(chatId, text);
+
+    // Send response
+    await ctx.reply(response.text);
+
+    logger.info('Message processed successfully', { chatId });
   } catch (error) {
-    logger.error('Failed to send echo message', { error });
+    logger.error('Failed to handle message', {
+      chatId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+
+    try {
+      await ctx.reply('Sorry, er ging iets mis. Probeer opnieuw.');
+    } catch (replyError) {
+      logger.error('Failed to send error message', { replyError });
+    }
   }
 });
 
