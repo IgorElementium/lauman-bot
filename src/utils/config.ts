@@ -90,7 +90,7 @@ export const config: Config = {
   },
   bot: {
     mode: (parseEnv<string>('BOT_MODE', 'production') as any) || 'production',
-    pollIntervalMs: parseIntEnv('POLL_INTERVAL_MS', 120000),
+    pollIntervalMs: parseIntEnv('POLL_INTERVAL_MS', 30000),
     heartbeatIntervalMs: parseIntEnv('HEARTBEAT_INTERVAL_MS', 1800000),
     logRetentionDays: parseIntEnv('LOG_RETENTION_DAYS', 90),
   },

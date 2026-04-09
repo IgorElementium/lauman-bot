@@ -15,6 +15,8 @@ CREATE TABLE IF NOT EXISTS follow_up_state (
   state TEXT NOT NULL,  -- FRESH, NUDGE_1, NUDGE_2, NUDGE_3, COLD, RESPONDED, CLOSED
   state_changed_at TEXT NOT NULL,  -- ISO 8601 timestamp
   last_nudge_sent_at TEXT,  -- ISO 8601 timestamp
+  call_count INTEGER DEFAULT 0,  -- How many times Jorn called
+  first_call_at TEXT,  -- When first call was made
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -68,6 +70,10 @@ CREATE TABLE IF NOT EXISTS conversation_log (
   error TEXT,
   created_at TEXT NOT NULL
 );
+
+-- Migrations for existing tables
+-- Add call_count and first_call_at if they don't exist
+PRAGMA table_info(follow_up_state);
 
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_seen_leads_odoo_lead_id ON seen_leads(odoo_lead_id);

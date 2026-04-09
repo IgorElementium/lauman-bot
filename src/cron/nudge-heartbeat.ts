@@ -2,6 +2,8 @@ import {
   getLeadsDueForNudge,
   updateFollowUpState,
   isQuietHours,
+  getCallHistory,
+  formatCallHistory,
 } from '../db/follow-up-state.js';
 import { getLeadDetail } from '../odoo/leads.js';
 import { bot } from '../telegram/bot.js';
@@ -36,22 +38,27 @@ export async function runNudgeHeartbeat(): Promise<void> {
     for (const record of dueLeads) {
       try {
         const leadDetail = await getLeadDetail(record.odoo_lead_id);
+        const callHistory = getCallHistory(record.odoo_lead_id);
+        const callHistoryMsg = formatCallHistory(callHistory);
 
         // Generate nudge message via Claude
         let nudgePrompt = '';
         if (record.state === 'NUDGE_1') {
           nudgePrompt = `Jorn, het is tijd om ${leadDetail.name} uit ${leadDetail.city} terug te bellen.
-Nummer: ${leadDetail.name} Bel hem nu terug! Je hebt al ${Math.floor(
-            (Date.now() - new Date(record.state_changed_at).getTime()) / 3600000
-          )} uur niets van hem gehoord.`;
+${callHistoryMsg}
+Nummer: ${leadDetail.phone}`;
         } else if (record.state === 'NUDGE_2') {
-          nudgePrompt = `Nog steeds niets van ${leadDetail.name} (${leadDetail.city}) gehoord?
-Het is nu 24 uur geleden dat hij belde. Nummer: ${leadDetail.phone}`;
+          nudgePrompt = `Nog steeds geen contact met ${leadDetail.name} (${leadDetail.city})?
+${callHistoryMsg}
+Nummer: ${leadDetail.phone}`;
         } else if (record.state === 'NUDGE_3') {
-          nudgePrompt = `LAATSTE HERINNERING: ${leadDetail.name} (${leadDetail.city}) wacht nog steeds.
-${leadDetail.phone} — probeer het nu nog een keer!`;
+          nudgePrompt = `LAATSTE HERINNERING: ${leadDetail.name} (${leadDetail.city})
+${callHistoryMsg}
+Nummer: ${leadDetail.phone} — probeer het nu nog een keer!`;
         } else if (record.state === 'COLD') {
-          nudgePrompt = `${leadDetail.name} is nu COLD (geen contact 48h+). Ik stop met nudgen.`;
+          nudgePrompt = `${leadDetail.name} is nu COLD (geen contact 48h+).
+${callHistoryMsg}
+Ik stop met nudgen.`;
         }
 
         // Send nudge via LLM (so it sounds natural)

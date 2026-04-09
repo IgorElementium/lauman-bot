@@ -121,6 +121,21 @@ export const TOOLS: ToolDefinition[] = [
       required: [],
     },
   },
+  {
+    name: 'log_call',
+    description:
+      'Log dat Jorn een lead heeft gebeld. Dit registreert de poging en stelt vragen over het resultaat.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        lead_id: {
+          type: 'number',
+          description: 'Odoo lead ID',
+        },
+      },
+      required: ['lead_id'],
+    },
+  },
 ];
 
 export function getToolByName(name: string): ToolDefinition | undefined {

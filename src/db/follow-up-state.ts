@@ -8,6 +8,8 @@ export interface FollowUpRecord {
   state: FollowUpState;
   state_changed_at: string;
   last_nudge_sent_at: string | null;
+  call_count: number;
+  first_call_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -141,4 +143,54 @@ export function nextNudgeTime(): Date {
   }
 
   return inFewHours;
+}
+
+export function recordCallAttempt(leadId: number): void {
+  const db = getDb();
+  const now = new Date().toISOString();
+
+  const record = getFollowUpState(leadId);
+  if (!record) {
+    return;
+  }
+
+  const newCallCount = record.call_count + 1;
+  const firstCallAt = record.first_call_at || now;
+
+  db.prepare(
+    `UPDATE follow_up_state
+     SET call_count = ?, first_call_at = ?, updated_at = ?
+     WHERE odoo_lead_id = ?`
+  ).run(newCallCount, firstCallAt, now, leadId);
+}
+
+export function getCallHistory(leadId: number): { count: number; firstCallAt: string | null } {
+  const record = getFollowUpState(leadId);
+  if (!record) {
+    return { count: 0, firstCallAt: null };
+  }
+
+  return {
+    count: record.call_count,
+    firstCallAt: record.first_call_at,
+  };
+}
+
+export function formatCallHistory(callHistory: { count: number; firstCallAt: string | null }): string {
+  if (callHistory.count === 0) {
+    return '';
+  }
+
+  const now = new Date();
+  const firstCall = new Date(callHistory.firstCallAt!);
+  const hoursSince = Math.floor((now.getTime() - firstCall.getTime()) / 3600000);
+
+  if (hoursSince < 1) {
+    return `Je hebt al ${callHistory.count}x gebeld (pas net)`;
+  } else if (hoursSince < 24) {
+    return `Je hebt al ${callHistory.count}x gebeld, eerste keer ${hoursSince}h geleden`;
+  } else {
+    const daysSince = Math.floor(hoursSince / 24);
+    return `Je hebt al ${callHistory.count}x gebeld, eerste keer ${daysSince}d geleden`;
+  }
 }

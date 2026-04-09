@@ -1,6 +1,7 @@
 import { getNewLeads, getLeadDetail, OdooLead } from '../odoo/leads.js';
 import { write } from '../odoo/client.js';
 import { searchRead } from '../odoo/client.js';
+import { recordCallAttempt } from '../db/follow-up-state.js';
 import { logger } from '../utils/logger.js';
 
 export interface ToolInput {
@@ -213,6 +214,23 @@ export async function executeGetPipelineSummary(stages?: string[]): Promise<stri
   }
 }
 
+export async function executeLogCall(leadId: number): Promise<string> {
+  try {
+    recordCallAttempt(leadId);
+    const lead = await getLeadDetail(leadId);
+
+    return `✅ Ik heb geregistreerd dat je ${lead.name} hebt gebeld.
+
+Wat was het resultaat?
+- **Heeft opgehaald**: Wat zei hij/zij?
+- **Niet opgehaald**: Zal ik een reminder zetten en/of een mail sturen?`;
+  } catch (error) {
+    throw new Error(
+      `Fout bij registreren call: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
+
 export async function executeTool(
   toolName: string,
   toolInput: ToolInput
@@ -246,6 +264,9 @@ export async function executeTool(
 
       case 'get_pipeline_summary':
         return await executeGetPipelineSummary(toolInput.stages as string[] | undefined);
+
+      case 'log_call':
+        return await executeLogCall(toolInput.lead_id as number);
 
       default:
         throw new Error(`Onbekende tool: ${toolName}`);
