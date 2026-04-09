@@ -1,5 +1,6 @@
 import { getNewLeads } from '../odoo/leads.js';
 import { isLeadSeen, markLeadSeen } from '../db/seen-leads.js';
+import { getOrCreateFollowUpState } from '../db/follow-up-state.js';
 import { bot } from '../telegram/bot.js';
 import { logger } from '../utils/logger.js';
 import { config } from '../utils/config.js';
@@ -46,6 +47,9 @@ export async function runOdooPoller(): Promise<void> {
           logger.info('Lead already seen, skipping', { leadId: lead.id });
           continue;
         }
+
+        // Initialize follow-up state (FRESH)
+        getOrCreateFollowUpState(lead.id);
 
         // Format and send message
         const message = formatLeadMessage(lead);

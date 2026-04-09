@@ -3,8 +3,10 @@ import { config, validateConfig } from './utils/config.js';
 import { startBot } from './telegram/bot.js';
 import { initDb, closeDb } from './db/sqlite.js';
 import { startOdooPoller } from './cron/odoo-poller.js';
+import { startNudgeHeartbeat } from './cron/nudge-heartbeat.js';
 
 let pollerInterval: NodeJS.Timeout | null = null;
+let nudgeInterval: NodeJS.Timeout | null = null;
 
 async function main(): Promise<void> {
   try {
@@ -25,8 +27,9 @@ async function main(): Promise<void> {
     // Do this before the bot because bot.start() runs indefinitely
     if (config.odoo.username && config.odoo.apiKey) {
       pollerInterval = startOdooPoller();
+      nudgeInterval = startNudgeHeartbeat();
     } else {
-      logger.warn('Odoo credentials not configured, skipping poller');
+      logger.warn('Odoo credentials not configured, skipping poller and nudges');
     }
 
     // Handle graceful shutdown
@@ -54,6 +57,10 @@ function shutdown(): void {
   if (pollerInterval) {
     clearInterval(pollerInterval);
     logger.info('Poller stopped');
+  }
+  if (nudgeInterval) {
+    clearInterval(nudgeInterval);
+    logger.info('Nudge heartbeat stopped');
   }
   closeDb();
   logger.info('Database closed');
